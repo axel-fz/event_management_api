@@ -1,0 +1,199 @@
+@startuml EventManagement_Class
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+' ============ ENTITIES ============
+package "Entities (TypeORM)" {
+
+  class User <<Entity>> {
+    +id: uuid
+    +email: string {unique}
+    +name: string
+    -passwordHash: string {select:false}
+    +createdAt: Date
+    +updatedAt: Date
+  }
+
+  class Event <<Entity>> {
+    +id: uuid
+    +title: string
+    +description: string
+    +location: string
+    +startDate: Date
+    +endDate: Date
+    +capacity: number
+    +ownerId: uuid
+    +createdAt: Date
+    +updatedAt: Date
+  }
+
+  class Registration <<Entity>> {
+    +id: uuid
+    +userId: uuid
+    +eventId: uuid
+    +createdAt: Date
+    {static} UNIQUE(userId, eventId)
+  }
+}
+
+User "1" -- "0..*" Event : owns >
+User "1" -- "0..*" Registration : makes >
+Event "1" -- "0..*" Registration : has >
+
+' ============ DTOs ============
+package "DTOs" {
+  class RegisterDto {
+    +email: string
+    +name: string
+    +password: string
+  }
+  class LoginDto {
+    +email: string
+    +password: string
+  }
+  class AuthResponseDto {
+    +accessToken: string
+    +user: UserResponseDto
+  }
+  class UserResponseDto {
+    +id: uuid
+    +email: string
+    +name: string
+  }
+  class CreateEventDto {
+    +title: string
+    +description: string
+    +location: string
+    +startDate: Date
+    +endDate: Date
+    +capacity: number
+  }
+  class UpdateEventDto
+  class QueryEventsDto {
+    +page: number
+    +limit: number
+    +search: string
+    +from: Date
+    +to: Date
+    +upcoming: boolean
+  }
+  class EventResponseDto {
+    +registeredCount: number
+    +availableSpots: number
+    +isRegistered: boolean
+  }
+  class PaginatedResponseDto<T> {
+    +data: T[]
+    +meta: PaginationMeta
+  }
+}
+
+UpdateEventDto --|> CreateEventDto : partial
+AuthResponseDto --> UserResponseDto
+PaginatedResponseDto ..> EventResponseDto
+
+' ============ SERVICES ============
+package "Services" {
+  class AuthService {
+    +register(dto: RegisterDto): AuthResponseDto
+    +login(dto: LoginDto): AuthResponseDto
+    -hashPassword(pw: string): string
+    -signToken(user: User): string
+  }
+
+  class UsersService {
+    +findById(id: uuid): User
+    +findByEmail(email: string): User
+    +create(data): User
+  }
+
+  class EventsService {
+    +create(userId, dto): Event
+    +findAll(userId, query): PaginatedResponseDto
+    +findOne(id, userId): EventResponseDto
+    +findMine(userId, query): PaginatedResponseDto
+    +update(id, userId, dto): Event
+    +remove(id, userId): void
+    +listAttendees(id, userId): User[]
+    -assertOwner(event, userId): void
+  }
+
+  class RegistrationsService {
+    +register(eventId, userId): Registration
+    +cancel(eventId, userId): void
+    +findMine(userId, query): PaginatedResponseDto
+    -runInTransaction()
+  }
+}
+
+' ============ CONTROLLERS ============
+package "Controllers" {
+  class AuthController {
+    +register()
+    +login()
+    +me()
+  }
+  class EventsController {
+    +create()
+    +findAll()
+    +findMine()
+    +findOne()
+    +update()
+    +remove()
+    +listAttendees()
+  }
+  class RegistrationsController {
+    +register()
+    +cancel()
+    +myRegistrations()
+  }
+  class HealthController {
+    +check()
+  }
+}
+
+' ============ SECURITY / COMMON ============
+package "Security & Common" {
+  class JwtAuthGuard <<Global Guard>>
+  class JwtStrategy {
+    +validate(payload: JwtPayload): User
+  }
+  class PublicDecorator <<@Public>>
+  class CurrentUserDecorator <<@CurrentUser>>
+  class HttpExceptionFilter <<Global Filter>>
+  class ValidationPipe <<Global Pipe>>
+}
+
+' ============ RELATIONSHIPS ============
+AuthController --> AuthService
+EventsController --> EventsService
+RegistrationsController --> RegistrationsService
+
+AuthService --> UsersService
+AuthService ..> RegisterDto
+AuthService ..> LoginDto
+EventsService --> Event : repository
+EventsService ..> CreateEventDto
+EventsService ..> QueryEventsDto
+RegistrationsService --> Registration : repository
+RegistrationsService --> Event : locks row (FOR UPDATE)
+UsersService --> User : repository
+
+JwtAuthGuard --> JwtStrategy
+JwtAuthGuard ..> PublicDecorator : skips if present
+JwtStrategy --> UsersService
+EventsController ..> CurrentUserDecorator
+RegistrationsController ..> CurrentUserDecorator
+
+note bottom of RegistrationsService
+  register():
+  1. BEGIN transaction
+  2. SELECT event FOR UPDATE
+  3. Check not ended, not duplicate
+  4. COUNT registrations < capacity
+  5. INSERT registration
+  6. COMMIT
+end note
+@enduml

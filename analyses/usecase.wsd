@@ -1,0 +1,88 @@
+@startuml EventManagement_UseCase
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "Guest" as Guest
+actor "Authenticated User" as User
+actor "Event Owner" as Owner
+
+Owner --|> User
+User --|> Guest
+
+rectangle "Event Management API" {
+
+  package "Authentication" {
+    usecase "Register account" as UC1
+    usecase "Log in" as UC2
+    usecase "View own profile" as UC3
+    usecase "Validate JWT" as UC_JWT
+  }
+
+  package "Event Management" {
+    usecase "View available events" as UC4
+    usecase "Search / filter events" as UC5
+    usecase "View event details" as UC6
+    usecase "Create event" as UC7
+    usecase "View my events" as UC8
+    usecase "Update event" as UC9
+    usecase "Delete event" as UC10
+    usecase "View event attendees" as UC11
+    usecase "Verify ownership" as UC_OWN
+  }
+
+  package "Event Registration" {
+    usecase "Register for event" as UC12
+    usecase "Cancel registration" as UC13
+    usecase "View my registrations" as UC14
+    usecase "Check duplicate registration" as UC_DUP
+    usecase "Check capacity (transaction + lock)" as UC_CAP
+    usecase "Check event not ended" as UC_END
+  }
+
+  usecase "Check API health" as UC15
+}
+
+Guest --> UC1
+Guest --> UC2
+Guest --> UC15
+
+User --> UC3
+User --> UC4
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC12
+User --> UC13
+User --> UC14
+
+Owner --> UC9
+Owner --> UC10
+Owner --> UC11
+
+UC4 ..> UC5 : <<extend>>
+
+UC3 ..> UC_JWT : <<include>>
+UC4 ..> UC_JWT : <<include>>
+UC6 ..> UC_JWT : <<include>>
+UC7 ..> UC_JWT : <<include>>
+UC8 ..> UC_JWT : <<include>>
+UC12 ..> UC_JWT : <<include>>
+UC13 ..> UC_JWT : <<include>>
+UC14 ..> UC_JWT : <<include>>
+
+UC9 ..> UC_OWN : <<include>>
+UC10 ..> UC_OWN : <<include>>
+UC11 ..> UC_OWN : <<include>>
+
+UC12 ..> UC_DUP : <<include>>
+UC12 ..> UC_CAP : <<include>>
+UC12 ..> UC_END : <<include>>
+
+note right of Owner
+  Owner is the user who created
+  the event. Ownership is checked
+  per event, not a global role.
+end note
+@enduml
