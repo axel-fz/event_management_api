@@ -26,7 +26,10 @@ import { Registration } from '../registrations/entities/registration.entity';
           .replace(/([?&])pgbouncer=[^&]+(&|$)/, '$1')
           .replace(/[?&]$/, '');
 
-        const isTest = process.env.NODE_ENV === 'test';
+        const isServerless =
+          !!process.env.VERCEL ||
+          process.env.NODE_ENV === 'test' ||
+          process.env.NODE_ENV === 'production';
 
         return {
           type: 'postgres',
@@ -34,8 +37,8 @@ import { Registration } from '../registrations/entities/registration.entity';
           entities: [User, Event, Registration],
           synchronize: false,
           ssl: isLocalOrDisabled ? false : { rejectUnauthorized: false },
-          retryAttempts: isTest ? 1 : 10,
-          retryDelay: isTest ? 500 : 3000,
+          retryAttempts: isServerless ? 1 : 10,
+          retryDelay: isServerless ? 500 : 3000,
           extra: {
             ssl: isLocalOrDisabled ? false : { rejectUnauthorized: false },
             max: 3,

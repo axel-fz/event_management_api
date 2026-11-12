@@ -44,10 +44,14 @@ export function setupApp(app: INestApplication): void {
 
   // 3. Global Prefix /v1
   app.setGlobalPrefix('v1', {
-    exclude: ['docs', 'docs-json'],
+    exclude: ['docs', 'docs-json', ''],
   });
 
-  // 4. Global ValidationPipe
+  // Root redirect to /docs
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/', (_req, res) => {
+    res.redirect('/docs');
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -104,7 +108,6 @@ export function setupApp(app: INestApplication): void {
   });
 
   // Explicit JSON endpoint for Swagger at /docs-json
-  const httpAdapter = app.getHttpAdapter();
   httpAdapter.get('/docs-json', (_req, res) => {
     res.json(document);
   });
