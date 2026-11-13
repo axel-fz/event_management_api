@@ -61,19 +61,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
         error = 'Database Error';
         message =
-          process.env.NODE_ENV === 'production'
-            ? 'A database error occurred'
-            : exception.message;
+          driverError?.detail ||
+          exception.message ||
+          'A database error occurred';
       }
     } else if (exception instanceof Error) {
       this.logger.error(
         `Unhandled error at ${request.method} ${request.url}: ${exception.message}`,
         exception.stack,
       );
-      message =
-        process.env.NODE_ENV === 'production'
-          ? 'Internal server error'
-          : exception.message;
+      message = exception.message || 'Internal server error';
     }
 
     const responseBody: ErrorResponseBody = {
