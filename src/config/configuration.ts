@@ -1,3 +1,5 @@
+import { parseDurationToSeconds } from '../common/utils/duration.util';
+
 export interface DatabaseConfig {
   url: string;
   migrationUrl?: string;
@@ -5,7 +7,7 @@ export interface DatabaseConfig {
 
 export interface JwtConfig {
   secret: string;
-  expiresIn: string;
+  expiresIn: number;
 }
 
 export interface CorsConfig {
@@ -44,9 +46,7 @@ export default (): AppConfig => ({
     )
       .replace(/^['"]|['"]$/g, '')
       .trim(),
-    expiresIn:
-      (process.env.JWT_EXPIRES_IN || '1d').replace(/['"\\\s]/g, '').trim() ||
-      '1d',
+    expiresIn: parseDurationToSeconds(process.env.JWT_EXPIRES_IN),
   },
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
