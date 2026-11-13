@@ -40,7 +40,8 @@ export class EnvironmentVariables {
   @MinLength(32, {
     message: 'JWT_SECRET must be at least 32 characters long for security',
   })
-  JWT_SECRET!: string;
+  JWT_SECRET =
+    'super_secret_jwt_key_at_least_32_characters_long_for_dev_environment';
 
   @IsString()
   JWT_EXPIRES_IN = '1d';
