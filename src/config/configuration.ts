@@ -38,8 +38,15 @@ export default (): AppConfig => ({
       process.env.MIGRATION_DATABASE_URL || process.env.DATABASE_URL,
   },
   jwt: {
-    secret: process.env.JWT_SECRET || '',
-    expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+    secret: (
+      process.env.JWT_SECRET ||
+      'super_secret_jwt_key_at_least_32_characters_long_for_dev_environment'
+    )
+      .replace(/^['"]|['"]$/g, '')
+      .trim(),
+    expiresIn:
+      (process.env.JWT_EXPIRES_IN || '1d').replace(/['"\\\s]/g, '').trim() ||
+      '1d',
   },
   cors: {
     origin: process.env.CORS_ORIGIN || '*',

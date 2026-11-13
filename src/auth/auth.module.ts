@@ -14,18 +14,33 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret:
+      useFactory: (configService: ConfigService) => {
+        const rawSecret =
           configService.get<string>('jwt.secret') ||
           process.env.JWT_SECRET ||
-          'default_secret',
-        signOptions: {
-          expiresIn:
-            configService.get<string>('jwt.expiresIn') ||
-            process.env.JWT_EXPIRES_IN ||
-            '1d',
-        },
-      }),
+          'super_secret_jwt_key_at_least_32_characters_long_for_dev_environment';
+        const secret = String(rawSecret)
+          .replace(/^['"]|['"]$/g, '')
+          .trim();
+
+        const rawExpiresIn =
+          configService.get<string>('jwt.expiresIn') ||
+          process.env.JWT_EXPIRES_IN ||
+          '1d';
+        const cleanExpiresIn = String(rawExpiresIn)
+          .replace(/['"\\\s]/g, '')
+          .trim();
+        const expiresIn = /^\d+$/.test(cleanExpiresIn)
+          ? Number(cleanExpiresIn)
+          : cleanExpiresIn || '1d';
+
+        return {
+          secret,
+          signOptions: {
+            expiresIn: expiresIn as unknown as number,
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
